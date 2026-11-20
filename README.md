@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NUCLEUS — Just Culture Assessment System
 
-## Getting Started
+This is the project specification pack for developing NUCLEUS with OpenAI Codex in VS Code.
 
-First, run the development server:
+## Product scope
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+NUCLEUS is a standalone, single-assessor decision-support application. One assessor conducts an assessment concerning one individual in relation to a defined incident or unsafe act. The first release is a prototype using fictional data only.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+It is not a culpability calculator, legal decision-maker, HR case-management suite, or replacement for a formal investigation.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Start here
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Open this folder in VS Code.
+2. Install/enable the OpenAI Codex extension and sign in.
+3. Read `AGENTS.md`.
+4. Read the documents in `docs/`.
+5. Start Codex with the prompt in `docs/CODEX_FIRST_PROMPT.md`.
+6. Ask Codex to propose a plan before it changes files.
+7. Review each change and run the checks before accepting it.
 
-## Learn More
+## Documents
 
-To learn more about Next.js, take a look at the following resources:
+- `AGENTS.md` — persistent instructions for Codex.
+- `docs/PROJECT_BRIEF.md` — product purpose, users, scope and principles.
+- `docs/FUNCTIONAL_SPEC.md` — user journey, stages, questions and behaviours.
+- `docs/ASSESSMENT_METHODOLOGY.md` — Reason, Dekker, human factors and decision safeguards.
+- `docs/TECHNICAL_ARCHITECTURE.md` — proposed stack, data structures and design constraints.
+- `docs/BUILD_PLAN.md` — staged implementation roadmap.
+- `docs/REFERENCE_REGISTER.md` — literature and verification register.
+- `docs/SUPABASE_AND_DATA_GOVERNANCE.md` — prototype setup, data lifecycle and production review gates.
+- `docs/CODEX_FIRST_PROMPT.md` — first prompt to use in Codex.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Important
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The approved development prototype uses Supabase Auth and PostgreSQL with fictional records only. Do not enter real employee, incident, plant, security-sensitive, medical or operationally sensitive information until security, privacy, deployment and regulatory requirements have been formally reviewed.
 
-## Deploy on Vercel
+## Supabase development setup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Create a Supabase project for prototype use and add the URL and publishable key to a root `.env.local` file using `.env.example` as a guide.
+2. Provision one assessor in Supabase Auth and keep public sign-up disabled.
+3. Install the Supabase CLI, run `npx supabase login`, then `npx supabase link` for the prototype project.
+4. Review the migration and run `npx supabase db push`.
+5. Start the app with `npm run dev` and sign in with the provisioned account.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Do not enter real data. See `docs/SUPABASE_AND_DATA_GOVERNANCE.md` for the migration, RLS, retention, recovery and review boundaries.

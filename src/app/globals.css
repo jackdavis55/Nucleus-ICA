@@ -1,26 +1,84 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono-ui);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: oklch(0.975 0.006 220);
+  --foreground: oklch(0.235 0.03 230);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.235 0.03 230);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.235 0.03 230);
+  --primary: oklch(0.48 0.09 174);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.95 0.015 210);
+  --secondary-foreground: oklch(0.3 0.04 220);
+  --muted: oklch(0.955 0.01 220);
+  --muted-foreground: oklch(0.55 0.025 220);
+  --accent: oklch(0.94 0.025 175);
+  --accent-foreground: oklch(0.32 0.06 175);
+  --destructive: oklch(0.58 0.2 28);
+  --border: oklch(0.91 0.015 220);
+  --input: oklch(0.91 0.015 220);
+  --ring: oklch(0.58 0.09 174);
+  --radius: 0.7rem;
+  --font-ui: Arial, Helvetica, sans-serif;
+  --font-mono-ui: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+* { box-sizing: border-box; }
+html { min-height: 100%; scroll-behavior: smooth; }
+body { min-height: 100vh; margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-ui); }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible { outline: 2px solid #267e6c; outline-offset: 3px; }
+.eyebrow { color: #81949a; font-size: 9px; font-weight: 700; letter-spacing: .12em; line-height: 1.35; }
+.skip-link { position: fixed; z-index: 50; top: 8px; left: 8px; transform: translateY(-150%); border-radius: 6px; background: #fff; padding: 10px 14px; color: #143d35; box-shadow: 0 2px 12px #10293633; }
+.skip-link:focus { transform: translateY(0); }
+.stage-scroll { scrollbar-width: thin; scrollbar-color: #c8d7d7 transparent; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  html, body { min-height: 0 !important; background: #fff !important; color: #172b38 !important; }
+  body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .print\:hidden { display: none !important; }
+  .assessment-shell { display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
+  #main-content { padding: 0 !important; }
+  #main-content > div { width: 100% !important; max-width: none !important; margin: 0 !important; }
+  .print-report { max-width: none !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  .report-section { width: 100% !important; break-inside: auto; }
+  .report-section > div { max-width: 100% !important; }
+  .print-report h2, .print-report h3, .print-report h4 { break-after: avoid; }
+  button, a { color: inherit !important; }
 }
