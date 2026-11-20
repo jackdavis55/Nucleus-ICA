@@ -412,6 +412,7 @@ export function AssessmentWorkspace() {
 
   async function reopenAssessment() {
     if (!isCompleted || !ready) return;
+    if (!window.confirm(`Open revision ${assessmentRevision + 1} for editing? Completed revision ${assessmentRevision} will stay in the assessment history.`)) return;
     const supabase = createClient();
     setSaveMessage("Opening a new revision…");
     const { data: nextRevision, error } = await supabase.rpc("reopen_assessment", { p_assessment_id: assessmentId });
@@ -495,7 +496,6 @@ export function AssessmentWorkspace() {
           </div>
           <div className="ml-3 hidden shrink-0 items-center gap-3 md:flex">
             <span className="hidden rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs text-[#cfdbdf] lg:inline-flex">Demonstration workspace</span>
-            {isCompleted && <Button variant="outline" size="sm" onClick={reopenAssessment} className="border-white/20 bg-transparent text-white hover:bg-white/10">Reopen revision {assessmentRevision + 1}</Button>}
             <span className="flex size-9 items-center justify-center rounded-full bg-[#dcebe7] text-xs font-semibold text-[#235349]" aria-label="Assessor profile">JD</span>
           </div>
           <Link href="/workspace?view=assessments" className="ml-3 inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/30 px-2.5 py-2 text-xs font-semibold hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
@@ -550,7 +550,7 @@ export function AssessmentWorkspace() {
               <span className="flex size-6 items-center justify-center text-[#819198]"><ClipboardList className="size-4" aria-hidden="true" /></span><span className="text-xs font-semibold">Recommendations</span>
             </button>
             <button type="button" onClick={() => setView("report")} aria-current={view === "report" ? "page" : undefined} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${view === "report" ? "bg-[#e8f4f1] text-[#176b5a] ring-1 ring-inset ring-[#cee5de]" : "text-[#647780] hover:bg-[#f4f7f7] hover:text-[#253b47]"}`}>
-              <span className="flex size-6 items-center justify-center text-[#819198]"><Printer className="size-4" aria-hidden="true" /></span><span className="text-xs font-semibold">Draft report</span>
+              <span className="flex size-6 items-center justify-center text-[#819198]"><Printer className="size-4" aria-hidden="true" /></span><span className="text-xs font-semibold">{isLocked ? "Assessment report" : "Draft report"}</span>
             </button>
           </nav>
           <div className="mt-6 hidden rounded-xl border border-[#dfe9e8] bg-[#f7faf9] p-3.5 lg:block">
@@ -567,7 +567,7 @@ export function AssessmentWorkspace() {
                   <Link href="/workspace?view=assessments" className="hover:underline">Assessments</Link><ChevronRight className="size-3" aria-hidden="true"/><span className="text-[#344c57]">{assessmentContext.reference}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#18313d] sm:text-[30px]">{view === "overview" ? "Assessment overview" : view === "stage" ? stages[activeStage].name : view === "summary" ? "Assessment summary" : view === "recommendations" ? "Recommendations" : "Draft report"}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#18313d] sm:text-[30px]">{view === "overview" ? "Assessment overview" : view === "stage" ? stages[activeStage].name : view === "summary" ? "Assessment summary" : view === "recommendations" ? "Recommendations" : isLocked ? "Assessment report" : "Draft report"}</h1>
                   <Badge variant="outline" className="rounded-full border-[#e9d5ad] bg-[#fff9ec] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#986519]">{isArchived ? "Archived" : isCompleted ? `Completed · revision ${assessmentRevision}` : `Draft · revision ${assessmentRevision}`}</Badge>
                 </div>
                 <p className="mt-2 text-sm text-[#71828a]">{view === "overview" ? "A structured review of the event, actions and working context." : view === "stage" ? `Stage ${activeStage + 1} of ${stages.length} · ${activePrompt.question}` : view === "summary" ? "Review recorded facts, assessor interpretations and outstanding information." : view === "recommendations" ? "Record proportionate actions and link each one to an assessment finding." : "Review the assessment record, then print or save it as a PDF."}</p>
@@ -591,7 +591,7 @@ export function AssessmentWorkspace() {
               </div>
             )}
             {view === "report" && !signoffError && <p role="status" className="mb-3 text-xs text-[#50656d] print:hidden">{saveMessage}</p>}
-            <div inert={isLocked || isSigningOff ? true : undefined}>
+            <div inert={(isLocked && view !== "report") || isSigningOff ? true : undefined}>
             {(view === "summary" || view === "recommendations") && <div className="mb-5 grid gap-3 rounded-2xl border border-[#dfe7e9] bg-white p-4 shadow-[0_5px_20px_rgba(28,55,67,0.04)] sm:grid-cols-[0.7fr_1.5fr_1fr] sm:items-center sm:px-5">
               <div><div className="eyebrow">EVENT NUMBER</div><div className="mt-1 text-sm font-semibold text-[#304a54]">{assessmentContext.eventReference}</div></div>
               <div><div className="eyebrow">EVENT DESCRIPTION</div><div className="mt-1 text-sm font-semibold text-[#304a54]">{assessmentContext.incident}</div></div>
@@ -794,14 +794,14 @@ export function AssessmentWorkspace() {
                   <article className="print-report rounded-2xl border border-[#dfe7e9] bg-white p-5 shadow-[0_5px_20px_rgba(28,55,67,0.04)] sm:p-8">
                     <header className="border-b-2 border-[#176b5a] pb-5">
                       <div className="eyebrow">NUCLEUS JUST CULTURE · INDIVIDUAL CULPABILITY ASSESSMENT</div>
-                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#18313d]">Draft assessment report</h2>
+                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#18313d]">{isLocked ? "Assessment report" : "Draft assessment report"}</h2>
                       <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
                       <div><div className="eyebrow">EVENT NUMBER</div><div className="mt-1 font-semibold text-[#405b64]">{assessmentContext.eventReference}</div></div>
                         <div><div className="eyebrow">EVENT DESCRIPTION</div><div className="mt-1 font-semibold text-[#405b64]">{assessmentContext.incident}</div></div>
                       <div><div className="eyebrow">INDIVIDUAL</div><div className="mt-1 font-semibold text-[#405b64]">{assessmentContext.individual}</div></div>
                       </div>
                       <p className="mt-3 text-xs text-[#637880]">Assessment reference {assessmentContext.reference} · Fictional demonstration case</p>
-                      <div className="mt-4 inline-flex rounded-full border border-[#e9d5ad] bg-[#fff9ec] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#986519]">Draft · Provisional · {completedCount} of {stages.length} stages complete</div>
+                      <div className="mt-4 inline-flex rounded-full border border-[#e9d5ad] bg-[#fff9ec] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#986519]">{isArchived ? "Archived" : isCompleted ? `Completed · revision ${assessmentRevision}` : "Draft · Provisional"} · {completedCount} of {stages.length} stages complete</div>
                     </header>
 
                     <section className="report-section border-b border-[#e6edef] py-5">
@@ -842,7 +842,7 @@ export function AssessmentWorkspace() {
                     <section className="report-section py-5">
                       <h3 className="text-sm font-bold text-[#294751]">5. Status and limitations</h3>
                       <p className="mt-2 text-sm leading-relaxed text-[#50656d]">{stages.length - completedCount} of {stages.length} assessment stages remain incomplete. Human performance classification, organisational contribution and provisional response consideration have not been determined in this prototype.</p>
-                      <p className="mt-2 text-sm leading-relaxed text-[#50656d]">This report is a draft from a fictional demonstration. It is decision support only, not a finding of fact, culpability determination, legal conclusion or disciplinary decision. All interpretations and recommendations require assessor review.</p>
+                      <p className="mt-2 text-sm leading-relaxed text-[#50656d]">This report is from a fictional demonstration. It is decision support only, not a finding of fact, culpability determination, legal conclusion or disciplinary decision. All interpretations and recommendations require assessor review.</p>
                       {!isLocked && twinSignoffIssues.length > 0 && <p role="status" className="mt-3 text-sm text-[#795320]">
                         In Stage 9, add a contribution explanation and evidence for {twinSignoffIssues.map(({ trap }) => trap.label).join(", ")}.
                       </p>}
