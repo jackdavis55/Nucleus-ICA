@@ -167,6 +167,8 @@ export function AssessmentWorkspace() {
   const [signoffError, setSignoffError] = useState("");
   const [saveMessage, setSaveMessage] = useState("Loading your assessment…");
   const [narrativeVersion, setNarrativeVersion] = useState(0);
+  const [narrativeSaveStatus, setNarrativeSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const savingNarrative = useRef(false);
   const [assessmentRevision, setAssessmentRevision] = useState(1);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isArchived, setIsArchived] = useState(false);
@@ -334,27 +336,41 @@ export function AssessmentWorkspace() {
   }, [ready, ownerId, methodologyVersionId, assessmentId, questionIds, questionDefinitions, answerIds, responses, procedureUse, twinSelections, evidence, evidencePositions, evidenceIds, isCompleted, isArchived]);
 
   async function saveNarrativeVersion() {
-    if (!ready || isCompleted || isArchived || !summaryText.trim()) return;
-    const supabase = createClient();
-    setSaveMessage("Saving narrative version…");
-    const basis = {
-      kind: "assessor_authored_summary",
-      assessment_reference: assessmentContext.reference,
-      answer_ids: Object.values(answerIds),
-      methodology_version_id: methodologyVersionId,
-    };
-    const { error } = await supabase.from("narrative_versions").insert({
-      owner_id: ownerId, assessment_id: assessmentId, version_number: narrativeVersion + 1,
-      generated_text: "No automated narrative was generated. The following text was entered by the assessor.",
-      basis, assessor_edited_text: summaryText.trim(),
-    });
-    if (error) { setSaveMessage("Could not save narrative version. Please retry."); return; }
-    setNarrativeVersion((version) => version + 1);
-    setSaveMessage(`Narrative version ${narrativeVersion + 1} saved.`);
+    const text = summaryText.trim();
+    if (!ready || isLocked || signingOff.current || savingNarrative.current || !text) return;
+    savingNarrative.current = true;
+    setNarrativeSaveStatus("saving");
+    const nextVersion = narrativeVersion + 1;
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("narrative_versions").insert({
+        owner_id: ownerId,
+        assessment_id: assessmentId,
+        version_number: nextVersion,
+        generated_text: "No automated narrative was generated. The following text was entered by the assessor.",
+        basis: {
+          kind: "assessor_authored_summary",
+          assessment_reference: assessmentContext.reference,
+          answer_ids: Object.values(answerIds),
+          methodology_version_id: methodologyVersionId,
+        },
+        assessor_edited_text: text,
+      });
+      if (error) {
+        setNarrativeSaveStatus("failed");
+        return;
+      }
+      setNarrativeVersion(nextVersion);
+      setNarrativeSaveStatus("saved");
+    } catch {
+      setNarrativeSaveStatus("failed");
+    } finally {
+      savingNarrative.current = false;
+    }
   }
 
   async function saveAssessmentSnapshot() {
-    if (!ready || isCompleted || isArchived || signingOff.current || completedStages.size !== stages.length) return;
+    if (!ready || isCompleted || isArchived || signingOff.current || savingNarrative.current || completedStages.size !== stages.length) return;
     if (twinSignoffIssues.length) {
       setSignoffError("Add a contribution explanation and evidence for every TWIN trap marked Contributing.");
       return;
@@ -747,8 +763,19 @@ export function AssessmentWorkspace() {
                     </CardHeader>
                     <CardContent className="px-5 pb-6 sm:px-7">
                       <label htmlFor="executive-summary" className="sr-only">Executive summary</label>
-                      <textarea id="executive-summary" value={summaryText} onChange={(event) => setSummaryText(event.target.value)} placeholder="Draft a concise summary of the current assessment. Distinguish facts, interpretations, explanations and unresolved issues." className="min-h-32 w-full resize-y rounded-xl border border-[#e1e8ea] bg-[#fbfcfc] px-4 py-3 text-sm leading-relaxed text-[#425c65] outline-none placeholder:text-[#9aa8ac] focus:border-[#77ac9e] focus:ring-2 focus:ring-[#dceee8]" />
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-[11px] text-[#819097]">Prototype only · version {narrativeVersion || "not saved"}. Saving adds an immutable narrative version.</p><Button size="sm" disabled={!ready || !summaryText.trim()} onClick={saveNarrativeVersion} className="bg-[#176b5a] text-white hover:bg-[#125646]">Save narrative version</Button></div>
+                      <textarea id="executive-summary" value={summaryText} readOnly={isLocked || narrativeSaveStatus === "saving"} onChange={(event) => {
+                        setSummaryText(event.target.value);
+                        setNarrativeSaveStatus("idle");
+                      }} placeholder="Draft a concise summary of the current assessment. Distinguish facts, interpretations, explanations and unresolved issues." className="min-h-32 w-full resize-y rounded-xl border border-[#e1e8ea] bg-[#fbfcfc] px-4 py-3 text-sm leading-relaxed text-[#425c65] outline-none placeholder:text-[#9aa8ac] focus:border-[#77ac9e] focus:ring-2 focus:ring-[#dceee8]" />
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <p role="status" className="text-xs text-[#50656d]">
+                          {narrativeSaveStatus === "saving" ? "Saving narrative version…" :
+                            narrativeSaveStatus === "saved" ? `Narrative version ${narrativeVersion} saved.` :
+                            narrativeVersion ? `Latest saved narrative version: ${narrativeVersion}.` : "No narrative version saved yet."}
+                        </p>
+                        {!isLocked && <Button size="sm" disabled={!ready || !summaryText.trim() || narrativeSaveStatus === "saving"} onClick={saveNarrativeVersion} className="bg-[#176b5a] text-white hover:bg-[#125646]">Save narrative version</Button>}
+                      </div>
+                      {narrativeSaveStatus === "failed" && <p role="alert" className="mt-2 text-xs text-red-800">Could not save the narrative version. Your text is still here. Please retry.</p>}
                     </CardContent>
                   </Card>
 
@@ -847,7 +874,7 @@ export function AssessmentWorkspace() {
                         In Stage 9, add a contribution explanation and evidence for {twinSignoffIssues.map(({ trap }) => trap.label).join(", ")}.
                       </p>}
                       {signoffError && <p role="alert" className="mt-3 text-sm text-red-800 print:hidden">{signoffError}</p>}
-                      {!isLocked && <Button disabled={!ready || isSigningOff || completedCount !== stages.length || twinSignoffIssues.length > 0} onClick={saveAssessmentSnapshot} className="mt-4 bg-[#176b5a] text-white hover:bg-[#125646] disabled:bg-[#aabbb6]">Complete assessment and preserve revision</Button>}
+                      {!isLocked && <Button disabled={!ready || isSigningOff || narrativeSaveStatus === "saving" || completedCount !== stages.length || twinSignoffIssues.length > 0} onClick={saveAssessmentSnapshot} className="mt-4 bg-[#176b5a] text-white hover:bg-[#125646] disabled:bg-[#aabbb6]">Complete assessment and preserve revision</Button>}
                     </section>
                   </article>
                 </>}
