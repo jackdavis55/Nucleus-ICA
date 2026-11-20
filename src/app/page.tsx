@@ -206,7 +206,7 @@ export default function Page() {
               <div className="text-[9px] font-bold uppercase tracking-[.15em] text-[#a77d3c]">JUST CULTURE RESPONSE</div>
               <h3 className="mt-2 text-lg font-semibold text-[#29444e]">What response may be appropriate?</h3>
               <p className="mt-2 text-xs leading-6 text-[#71838a]">Consider learning, support, system improvement or further accountability review. A behaviour label alone does not settle the response.</p>
-              <div className="mt-5 flex flex-wrap gap-2">{["Human error", "At-risk behaviour", "Possible reckless behaviour"].map((label) => <span key={label} className="rounded-full border border-[#eee6d8] bg-[#fcf9f2] px-3 py-1.5 text-[10px] font-medium text-[#806842]">{label}</span>)}</div>
+              <div className="mt-5 flex flex-wrap gap-2">{["Employment Review", "Re-Assessment", "SQEP Removal", "Training", "Coaching"].map((label) => <span key={label} className="rounded-full border border-[#eee6d8] bg-[#fcf9f2] px-3 py-1.5 text-[10px] font-medium text-[#806842]">{label}</span>)}</div>
             </article>
           </div>
           <p className="mt-4 text-[11px] leading-5 text-[#7c8d91]">A violation does not automatically mean reckless behaviour. Deliberate action alone does not establish culpability.</p>
