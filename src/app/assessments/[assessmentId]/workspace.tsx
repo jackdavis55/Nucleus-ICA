@@ -187,6 +187,19 @@ export function AssessmentWorkspace() {
   const [summaryText, setSummaryText] = useState("");
   const [selectedRecommendations, setSelectedRecommendations] = useState<string[]>([]);
   const [recommendationRationales, setRecommendationRationales] = useState<Record<string, string>>({});
+  const [savedRecommendations, setSavedRecommendations] = useState<{ title: string; rationale: string | null }[]>([]);
+  const [recommendationsLoaded, setRecommendationsLoaded] = useState(false);
+  const [recommendationSaveStatus, setRecommendationSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const savingRecommendations = useRef(false);
+  const visibleRecommendations = recommendationOptions.map((title) => ({
+    title,
+    selected: selectedRecommendations.includes(title),
+    rationale: recommendationRationales[title]?.trim() || null,
+  }));
+  const recommendationsChanged = visibleRecommendations.some(({ title, selected, rationale }) => {
+    const saved = savedRecommendations.find((item) => item.title === title);
+    return selected !== Boolean(saved) || (selected && rationale !== saved?.rationale);
+  });
   const isLocked = isCompleted || isArchived;
 
   useEffect(() => {
@@ -198,7 +211,7 @@ export function AssessmentWorkspace() {
         if (authError || !authData.user) { router.replace("/workspace"); return; }
         const { data: record, error: recordError } = await supabase.from("assessments").select("*").eq("id", assessmentId).single();
         if (recordError || !record) { router.replace("/workspace"); return; }
-        const [personResult, incidentResult, questionsResult, answersResult, evidenceResult, narrativeResult, revisionsResult] = await Promise.all([
+        const [personResult, incidentResult, questionsResult, answersResult, evidenceResult, narrativeResult, revisionsResult, recommendationsResult] = await Promise.all([
           supabase.from("individuals").select("display_name").eq("id", record.individual_id).single(),
           supabase.from("incidents").select("reference,title,occurred_on,description").eq("id", record.incident_id).single(),
           supabase.from("methodology_questions").select("id,question_key,question_text,why_text,answer_options").eq("methodology_version_id", record.methodology_version_id).order("sort_order"),
@@ -206,6 +219,8 @@ export function AssessmentWorkspace() {
           supabase.from("evidence_items").select("id,answer_id,description,status,position").eq("assessment_id", assessmentId),
           supabase.from("narrative_versions").select("version_number,generated_text,assessor_edited_text").eq("assessment_id", assessmentId).order("version_number", { ascending: false }).limit(1),
           supabase.from("assessment_revisions").select("*").eq("assessment_id", assessmentId).order("revision_number", { ascending: false }),
+          supabase.from("recommendations").select("title,rationale,selected").eq("assessment_id", assessmentId)
+            .eq("status", "proposed").order("updated_at", { ascending: false }),
         ]);
         if (!active) return;
         if (personResult.error || incidentResult.error || questionsResult.error || answersResult.error || evidenceResult.error || revisionsResult.error) {
@@ -252,6 +267,16 @@ export function AssessmentWorkspace() {
             record.status === "archived" || hasCompleteProcedureUse(loadedProcedureUse);
           if (checksComplete && hasStageResponseAndEvidence(loadedResponses[index], loadedEvidence[index])) completed.add(index);
         });
+        if (!recommendationsResult.error) {
+          const stored = recommendationOptions.flatMap((title) => {
+            const match = recommendationsResult.data.find((item) => item.title === title && item.selected);
+            return match ? [{ title, rationale: match.rationale }] : [];
+          });
+          setSavedRecommendations(stored);
+          setSelectedRecommendations(stored.map(({ title }) => title));
+          setRecommendationRationales(Object.fromEntries(stored.map(({ title, rationale }) => [title, rationale ?? ""])));
+          setRecommendationsLoaded(true);
+        }
         setOwnerId(authData.user.id);
         setMethodologyVersionId(record.methodology_version_id);
         setAssessmentRevision(record.revision_number);
@@ -369,8 +394,34 @@ export function AssessmentWorkspace() {
     }
   }
 
+  async function saveRecommendations() {
+    if (!ready || !recommendationsLoaded || isLocked || !recommendationsChanged || savingRecommendations.current || signingOff.current) return;
+    savingRecommendations.current = true;
+    setRecommendationSaveStatus("saving");
+    try {
+      const { error } = await createClient().rpc("save_recommendations", {
+        p_assessment_id: assessmentId,
+        p_recommendations: visibleRecommendations,
+      });
+      if (error) {
+        setRecommendationSaveStatus("failed");
+        return;
+      }
+      setSavedRecommendations(visibleRecommendations.filter(({ selected }) => selected));
+      setRecommendationSaveStatus("saved");
+    } catch {
+      setRecommendationSaveStatus("failed");
+    } finally {
+      savingRecommendations.current = false;
+    }
+  }
+
   async function saveAssessmentSnapshot() {
     if (!ready || isCompleted || isArchived || signingOff.current || savingNarrative.current || completedStages.size !== stages.length) return;
+    if (!recommendationsLoaded || recommendationsChanged || savingRecommendations.current) {
+      setSignoffError("Save your recommendation changes before completing the assessment.");
+      return;
+    }
     if (twinSignoffIssues.length) {
       setSignoffError("Add a contribution explanation and evidence for every TWIN trap marked Contributing.");
       return;
@@ -586,7 +637,7 @@ export function AssessmentWorkspace() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#18313d] sm:text-[30px]">{view === "overview" ? "Assessment overview" : view === "stage" ? stages[activeStage].name : view === "summary" ? "Assessment summary" : view === "recommendations" ? "Recommendations" : isLocked ? "Assessment report" : "Draft report"}</h1>
                   <Badge variant="outline" className="rounded-full border-[#e9d5ad] bg-[#fff9ec] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#986519]">{isArchived ? "Archived" : isCompleted ? `Completed · revision ${assessmentRevision}` : `Draft · revision ${assessmentRevision}`}</Badge>
                 </div>
-                <p className="mt-2 text-sm text-[#71828a]">{view === "overview" ? "A structured review of the event, actions and working context." : view === "stage" ? `Stage ${activeStage + 1} of ${stages.length} · ${activePrompt.question}` : view === "summary" ? "Review recorded facts, assessor interpretations and outstanding information." : view === "recommendations" ? "Record proportionate actions and link each one to an assessment finding." : "Review the assessment record, then print or save it as a PDF."}</p>
+                <p className="mt-2 text-sm text-[#71828a]">{view === "overview" ? "A structured review of the event, actions and working context." : view === "stage" ? `Stage ${activeStage + 1} of ${stages.length} · ${activePrompt.question}` : view === "summary" ? "Review recorded facts, assessor interpretations and outstanding information." : view === "recommendations" ? "Record potential actions and add supporting notes if needed." : "Review the assessment record, then print or save it as a PDF."}</p>
               </div>
               {(view === "overview" || view === "stage") &&
                 <Button className="h-10 rounded-lg bg-[#176b5a] px-4 text-white shadow-sm hover:bg-[#125646]" onClick={() => {
@@ -793,22 +844,39 @@ export function AssessmentWorkspace() {
                   <CardHeader className="px-5 pt-5 pb-3 sm:px-7 sm:pt-6">
                     <div className="eyebrow">ASSESSOR-RECORDED · NO AUTOMATIC SANCTION</div>
                     <CardTitle className="mt-1 text-lg text-[#203a45]">Potential recommendations</CardTitle>
-                    <CardDescription>Select only actions supported by findings. Add the finding or rationale for each selection.</CardDescription>
+                    <CardDescription>Select potential actions and add an optional supporting note to each.</CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-3 px-5 pb-6 sm:grid-cols-2 sm:px-7">
-                    {recommendationOptions.map((recommendation) => {
+                    {recommendationsLoaded && recommendationOptions.map((recommendation) => {
                       const selected = selectedRecommendations.includes(recommendation);
                       const fieldId = `recommendation-${recommendationOptions.indexOf(recommendation)}`;
                       return <div key={recommendation} className={`rounded-xl border p-3.5 ${selected ? "border-[#a9cfc3] bg-[#f5faf8]" : "border-[#e7edef] bg-white"}`}>
                         <label className="flex cursor-pointer items-start gap-2.5 text-xs font-medium leading-relaxed text-[#435d66]">
-                          <input type="checkbox" checked={selected} onChange={(event) => setSelectedRecommendations((current) => event.target.checked ? [...current, recommendation] : current.filter((item) => item !== recommendation))} className="mt-0.5 size-4 accent-[#176b5a]" />
+                          <input type="checkbox" checked={selected} disabled={isLocked || recommendationSaveStatus === "saving"} onChange={(event) => {
+                            setSelectedRecommendations((current) => event.target.checked ? [...current, recommendation] : current.filter((item) => item !== recommendation));
+                            setRecommendationSaveStatus("idle");
+                          }} className="mt-0.5 size-4 accent-[#176b5a]" />
                           {recommendation}
                         </label>
                         {recommendation === "Recommend Competency Procedure Initiation" && <p className="mt-2 rounded-lg border border-[#eadfca] bg-[#fffaf1] px-3 py-2 text-[11px] leading-relaxed text-[#796b55]">This effectively starts a formal employment process that could lead to suspension or dismissal.</p>}
-                        {selected && <div className="mt-3"><label htmlFor={fieldId} className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#668078]">Linked finding or rationale</label><textarea id={fieldId} value={recommendationRationales[recommendation] ?? ""} onChange={(event) => setRecommendationRationales((current) => ({ ...current, [recommendation]: event.target.value }))} placeholder="Identify the supporting assessment finding." className="mt-1.5 min-h-16 w-full resize-y rounded-lg border border-[#dfe9e6] bg-white px-3 py-2 text-xs text-[#425c65] outline-none placeholder:text-[#9aa8ac] focus:border-[#77ac9e] focus:ring-2 focus:ring-[#dceee8]" /></div>}
+                        {selected && <div className="mt-3"><label htmlFor={fieldId} className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#668078]">Supporting note (optional)</label><textarea id={fieldId} readOnly={isLocked || recommendationSaveStatus === "saving"} value={recommendationRationales[recommendation] ?? ""} onChange={(event) => {
+                          setRecommendationRationales((current) => ({ ...current, [recommendation]: event.target.value }));
+                          setRecommendationSaveStatus("idle");
+                        }} placeholder="Add context for this recommendation." className="mt-1.5 min-h-16 w-full resize-y rounded-lg border border-[#dfe9e6] bg-white px-3 py-2 text-xs text-[#425c65] outline-none placeholder:text-[#9aa8ac] focus:border-[#77ac9e] focus:ring-2 focus:ring-[#dceee8]" /></div>}
                       </div>;
                     })}
-                    <p className="text-[11px] text-[#819097] sm:col-span-2">Selections are held in this browser session only. Recommendations require assessor review and do not create a disciplinary decision.</p>
+                    {!recommendationsLoaded && <p role="status" className="text-sm text-[#795320] sm:col-span-2">
+                      {ready ? "Could not load recommendations. Reload the assessment to retry." : "Loading recommendations…"}
+                    </p>}
+                    {!isLocked && recommendationsLoaded && <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                      <Button size="sm" disabled={!recommendationsChanged || recommendationSaveStatus === "saving"} onClick={saveRecommendations}>Save recommendations</Button>
+                      <p role="status" className="text-xs text-[#50656d]">
+                        {recommendationSaveStatus === "saving" ? "Saving recommendations…" :
+                          recommendationSaveStatus === "saved" ? "Recommendations saved." :
+                          recommendationsChanged ? "Unsaved changes." : ""}
+                      </p>
+                      {recommendationSaveStatus === "failed" && <p role="alert" className="text-xs text-red-800">Could not save recommendations. Your selections and notes are still here.</p>}
+                    </div>}
                   </CardContent>
                 </Card>}
 
@@ -863,7 +931,7 @@ export function AssessmentWorkspace() {
 
                     <section className="report-section border-b border-[#e6edef] py-5">
                       <h3 className="text-sm font-bold text-[#294751]">4. Recommendations</h3>
-                      {selectedRecommendations.length ? <ul className="mt-3 space-y-3">{selectedRecommendations.map((recommendation) => <li key={recommendation} className="break-inside-avoid text-sm text-[#405b64]"><div className="font-semibold">{recommendation}</div><p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-[#637880]">{recommendationRationales[recommendation]?.trim() || "No supporting finding or rationale recorded."}</p></li>)}</ul> : <p className="mt-2 text-sm text-[#637880]">No recommendations have been selected.</p>}
+                      {savedRecommendations.length ? <ul className="mt-3 space-y-3">{savedRecommendations.map(({ title, rationale }) => <li key={title} className="break-inside-avoid text-sm text-[#405b64]"><div className="font-semibold">{title}</div>{rationale && <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-[#637880]">{rationale}</p>}</li>)}</ul> : <p className="mt-2 text-sm text-[#637880]">{recommendationsLoaded ? "No recommendations have been saved." : "Saved recommendations are unavailable."}</p>}
                     </section>
 
                     <section className="report-section py-5">

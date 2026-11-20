@@ -284,7 +284,7 @@ Support recommendations such as:
 - Independent specialist review.
 - Further evidence gathering.
 
-Recommendations must be linked to identified findings. Do not generate a disciplinary sanction automatically.
+The assessor may add a supporting note to each proposed recommendation. A linked finding is optional. Do not generate a disciplinary sanction automatically.
 
 ### Overall verdict
 Use a clear provisional status:

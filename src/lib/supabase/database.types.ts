@@ -24,7 +24,7 @@ export type Database = {
       evidence_items: Table<{ id: string; owner_id: string; assessment_id: string; answer_id: string | null; finding_id: string | null; evidence_type: string; source: string | null; description: string; evidence_date: string | null; relevance: string | null; limitations: string | null; position: "supports" | "challenges" | "context" | "undetermined"; confidentiality: "restricted" | "sensitive" | "general"; status: "active" | "withdrawn"; created_at: string }>;
       assessment_factors: Table<Owned & { assessment_id: string; category: string; factor_name: string; presence: string; relevance: string; influence: string | null; supporting_evidence: string | null; counter_evidence: string | null; assessor_rationale: string | null }>;
       finding_classifications: Table<{ id: string; owner_id: string; assessment_id: string; finding_id: string; classification_system: "reason_human_performance" | "just_culture_response"; classification: string; rationale: string | null; status: string; created_at: string }>;
-      recommendations: Table<Owned & { assessment_id: string; title: string; rationale: string | null; status: string }>;
+      recommendations: Table<Owned & { assessment_id: string; title: string; rationale: string | null; status: string; selected: boolean }>;
       recommendation_findings: Table<{ owner_id: string; assessment_id: string; recommendation_id: string; finding_id: string }>;
       assessment_revisions: Table<{ id: string; owner_id: string; assessment_id: string; revision_number: number; change_reason: string; snapshot: Json; created_at: string }>;
       narrative_versions: Table<{ id: string; owner_id: string; assessment_id: string; version_number: number; generated_text: string; basis: Json; assessor_edited_text: string | null; created_at: string }>;
@@ -32,6 +32,7 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       assessment_is_editable: { Args: { p_assessment_id: string }; Returns: boolean };
+      save_recommendations: { Args: { p_assessment_id: string; p_recommendations: Json }; Returns: undefined };
       begin_assessment: { Args: { p_assessment_id: string }; Returns: undefined };
       complete_assessment: { Args: { p_assessment_id: string }; Returns: undefined };
       reopen_assessment: { Args: { p_assessment_id: string }; Returns: number };
