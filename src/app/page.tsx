@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { assessmentStages } from "@/lib/assessment-stages";
 import {
   ArrowDown,
   ArrowRight,
@@ -56,10 +57,9 @@ const principles = [
 ];
 
 const workflow = [
-  ["Record the event", "Describe the incident and the specific action or omission being considered."],
-  ["Explore the circumstances", "Work through relevant questions and record explanations, evidence and uncertainty."],
-  ["Review the reasoning", "Check that interpretations are balanced, traceable and considered alongside wider system factors."],
-  ["Document a provisional view", "Set out limitations, recommendations and the assessor’s reasoned conclusion for review."],
+  ...assessmentStages.map(({ name }) => name),
+  "Recommendations",
+  "Assessment summary and draft report",
 ];
 
 export default function Page() {
@@ -179,15 +179,13 @@ export default function Page() {
               <p className="mt-1.5 text-[11px] leading-5 text-[#71838a]">Record evidence that supports an interpretation and evidence that challenges it. Unknown, disputed and unavailable information should remain visible.</p>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {workflow.map(([title, text], index) => (
-              <article key={title} className="rounded-2xl border border-[#dfe8e6] bg-white p-5 sm:p-6">
-                <div className="flex size-8 items-center justify-center rounded-full bg-[#e8f3ef] text-xs font-bold text-[#367b69]">{index + 1}</div>
-                <h3 className="mt-4 text-sm font-semibold text-[#29444e]">{title}</h3>
-                <p className="mt-2 text-xs leading-6 text-[#71838a]">{text}</p>
-              </article>
+          <ol className="grid list-decimal gap-x-8 gap-y-2 rounded-2xl border border-[#dfe8e6] bg-white py-5 pl-12 pr-5 sm:grid-cols-2 sm:py-6 sm:pr-6">
+            {workflow.map((title) => (
+              <li key={title} className="py-1 pl-1 text-sm font-semibold leading-snug text-[#29444e] marker:font-bold marker:text-[#367b69]">
+                {title}
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 

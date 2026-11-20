@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { assessmentStages as stages } from "@/lib/assessment-stages";
 import { hasStageResponseAndEvidence } from "@/lib/stage-completion";
 import { createClient } from "@/lib/supabase/client";
 import { hasCompleteProcedureUse, procedureStageIndex, procedureUseChecks, readProcedureUse, type ProcedureUse } from "@/lib/procedure-use";
@@ -44,20 +45,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const stages = [
-  { name: "Event, Incident or Non-Conformance" },
-  { name: "Causal contribution" },
-  { name: "Intention & outcome" },
-  { name: "Fitness for duty" },
-  { name: "Training & competence" },
-  { name: "Knowledge & understanding" },
-  { name: "Procedures & expectations" },
-  { name: "Volition & personal control" },
-  { name: "Error traps & context" },
-  { name: "Substitution test" },
-  { name: "Previous history" },
-];
 
 const recommendationOptions = [
   "Individual learning or coaching",
