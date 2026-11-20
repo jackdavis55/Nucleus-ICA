@@ -883,7 +883,7 @@ export function AssessmentWorkspace() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl border-[#dfe7e9] py-0 shadow-[0_5px_20px_rgba(28,55,67,0.04)]">
+                {view !== "overview" && <Card className="rounded-2xl border-[#dfe7e9] py-0 shadow-[0_5px_20px_rgba(28,55,67,0.04)]">
                   <CardHeader className="px-5 pt-5 pb-2">
                     <div className="flex items-center gap-2"><div className="flex size-7 items-center justify-center rounded-lg bg-[#eef3f6] text-[#607d89]"><Sparkles className="size-3.5" aria-hidden="true" /></div><div className="eyebrow">WORKING NARRATIVE</div></div>
                     <CardTitle className="mt-2 text-base text-[#203a45]">Current understanding</CardTitle>
@@ -899,7 +899,7 @@ export function AssessmentWorkspace() {
                     </div>
                     <a href="#narrative-panel" className="mt-2 inline-flex h-8 items-center px-1 text-xs text-[#317765] hover:text-[#175e4f]">Open narrative <ArrowRight className="ml-1.5 size-3.5" aria-hidden="true" /></a>
                   </CardContent>
-                </Card>
+                </Card>}
 
                 <div className="rounded-2xl border border-[#d7e2e2] bg-[#eaf2f1] p-4">
                   <div className="flex gap-3"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/80 text-[#557c73]"><FlaskConical className="size-4" aria-hidden="true" /></div><div><h3 className="text-xs font-semibold text-[#3c6159]">Prototype data only</h3><p className="mt-1.5 text-[11px] leading-relaxed text-[#627d77]">This demonstration uses fictional information. Do not enter real personnel or operational data.</p></div></div>
