@@ -499,10 +499,12 @@ export function AssessmentWorkspace() {
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 lg:hidden" aria-label="Assessment stage navigation" onClick={() => document.getElementById("assessment-stages")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
               <Menu className="size-5" />
             </Button>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-[#72c5b2] text-[#102936] shadow-inner">
-              <Layers3 className="size-5" strokeWidth={2.4} aria-hidden="true" />
-            </div>
-            <div className="text-[0.9rem] font-bold leading-tight sm:text-[1.05rem]">Nucleus - Individual Culpability Assessment</div>
+            <Link href="/" aria-label="NUCLEUS home" className="flex min-w-0 items-center gap-3 rounded-lg hover:text-[#c7ece3] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#72c5b2] text-[#102936] shadow-inner">
+                <Layers3 className="size-5" strokeWidth={2.4} aria-hidden="true" />
+              </span>
+              <span className="text-[0.9rem] font-bold leading-tight sm:text-[1.05rem]">Nucleus - Individual Culpability Assessment</span>
+            </Link>
           </div>
           <div className="ml-3 hidden shrink-0 items-center gap-3 md:flex">
             <span className="hidden rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs text-[#cfdbdf] lg:inline-flex">Demonstration workspace</span>
